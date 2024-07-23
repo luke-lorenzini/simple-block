@@ -1,19 +1,26 @@
 use std::collections::HashMap;
 
+pub type Xxx = (u32, TransactionTypes);
+
 #[derive(Debug, Default)]
 pub struct Block {
     pub id: u32,
-    pub transactions: Vec<(u32, Trans)>,
+    pub transactions: Vec<Xxx>,
+    pub block_hash: Vec<u8>,
 }
 
 impl Block {
-    pub fn new(id: u32, transactions: Vec<(u32, Trans)>) -> Self {
-        Block { id, transactions }
+    pub fn new(id: u32, transactions: Vec<Xxx>, block_hash: Vec<u8>) -> Self {
+        Block {
+            id,
+            transactions,
+            block_hash,
+        }
     }
 }
 
 #[derive(Debug)]
-pub enum Trans {
+pub enum TransactionTypes {
     CreateAccount {
         id: u32,
         start_balance: f64,
@@ -33,7 +40,7 @@ struct AccountDetails {
 #[derive(Default)]
 pub struct Transactor {
     accounts: HashMap<u32, AccountDetails>,
-    transactions: Vec<(u32, Trans)>,
+    transactions: Vec<Xxx>,
     next_transaction_number: u32,
 }
 
@@ -49,7 +56,7 @@ impl Transactor {
         }
     }
 
-    pub fn cut_block(&mut self) -> Vec<(u32, Trans)> {
+    pub fn cut_block(&mut self) -> Vec<Xxx> {
         self.transactions.drain(..).collect()
     }
 
@@ -61,9 +68,12 @@ impl Transactor {
         }
     }
 
-    pub fn transact(&mut self, t: Trans) -> Result<(), Box<dyn std::error::Error>> {
-        match t {
-            Trans::CreateAccount { id, start_balance } => match self.accounts.get(&id) {
+    pub fn transact(
+        &mut self,
+        transaction_type: TransactionTypes,
+    ) -> Result<(), Box<dyn std::error::Error>> {
+        match transaction_type {
+            TransactionTypes::CreateAccount { id, start_balance } => match self.accounts.get(&id) {
                 None => {
                     self.accounts.insert(
                         id,
@@ -72,11 +82,12 @@ impl Transactor {
                         },
                     );
                     self.next_transaction_number += 1;
-                    self.transactions.push((self.next_transaction_number, t));
+                    self.transactions
+                        .push((self.next_transaction_number, transaction_type));
                 }
                 Some(_) => return Err("Account already exists".into()),
             },
-            Trans::Transfer {
+            TransactionTypes::Transfer {
                 from_id,
                 to_id,
                 amount,
@@ -93,7 +104,8 @@ impl Transactor {
                         self.accounts
                             .insert(to_id, AccountDetails { balance: b_dest });
                         self.next_transaction_number += 1;
-                        self.transactions.push((self.next_transaction_number, t));
+                        self.transactions
+                            .push((self.next_transaction_number, transaction_type));
                     } else {
                         return Err("NSF".into());
                     }
@@ -122,7 +134,7 @@ mod tests {
     #[test]
     fn new_account() {
         let mut xxx = Transactor::new();
-        let res = xxx.transact(Trans::CreateAccount {
+        let res = xxx.transact(TransactionTypes::CreateAccount {
             id: 0,
             start_balance: 500.,
         });
@@ -133,14 +145,14 @@ mod tests {
     #[test]
     fn new_duplicate_account() {
         let mut xxx = Transactor::new();
-        let res = xxx.transact(Trans::CreateAccount {
+        let res = xxx.transact(TransactionTypes::CreateAccount {
             id: 0,
             start_balance: 500.,
         });
 
         assert!(res.is_ok());
 
-        let res = xxx.transact(Trans::CreateAccount {
+        let res = xxx.transact(TransactionTypes::CreateAccount {
             id: 0,
             start_balance: 500.,
         });
@@ -151,7 +163,7 @@ mod tests {
     #[test]
     fn new_account_balance() {
         let mut xxx = Transactor::new();
-        let _ = xxx.transact(Trans::CreateAccount {
+        let _ = xxx.transact(TransactionTypes::CreateAccount {
             id: 0,
             start_balance: 500.,
         });
@@ -162,15 +174,15 @@ mod tests {
     #[test]
     fn valid_transaction() {
         let mut xxx = Transactor::new();
-        let _ = xxx.transact(Trans::CreateAccount {
+        let _ = xxx.transact(TransactionTypes::CreateAccount {
             id: 0,
             start_balance: 500.,
         });
-        let _ = xxx.transact(Trans::CreateAccount {
+        let _ = xxx.transact(TransactionTypes::CreateAccount {
             id: 1,
             start_balance: 500.,
         });
-        let _ = xxx.transact(Trans::Transfer {
+        let _ = xxx.transact(TransactionTypes::Transfer {
             from_id: 0,
             to_id: 1,
             amount: 50.,
@@ -183,15 +195,15 @@ mod tests {
     #[test]
     fn nsf() {
         let mut xxx = Transactor::new();
-        let _ = xxx.transact(Trans::CreateAccount {
+        let _ = xxx.transact(TransactionTypes::CreateAccount {
             id: 0,
             start_balance: 5.,
         });
-        let _ = xxx.transact(Trans::CreateAccount {
+        let _ = xxx.transact(TransactionTypes::CreateAccount {
             id: 1,
             start_balance: 500.,
         });
-        let res = xxx.transact(Trans::Transfer {
+        let res = xxx.transact(TransactionTypes::Transfer {
             from_id: 0,
             to_id: 1,
             amount: 50.,
