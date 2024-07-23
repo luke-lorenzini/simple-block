@@ -1,46 +1,77 @@
-use std::time::{Duration, Instant};
+// use std::time::{Duration, Instant};
 
-use simple_block::{Trans, Transactor};
+use std::collections::VecDeque;
+
+use simple_block::{Block, Trans, Transactor};
 
 fn main() {
     // loop {
-    //     let start = Instant::now();
+    // let start = Instant::now();
+    let block = Block::default();
+    let mut blockchain = vec![block];
 
-    //     let mut duration = start.elapsed();
-    //     while duration <= Duration::from_secs(2) {
-    //         duration = start.elapsed();
-    //     }
-
-    //     println!("Done");
-    // }
-    let _ = test();
-}
-
-fn test() -> Result<(), Box<dyn std::error::Error>> {
     let mut xxx = Transactor::new();
+    let mut my_stack: VecDeque<Trans> = VecDeque::default();
 
-    xxx.transact(Trans::CreateAccount {
+    my_stack.push_back(Trans::CreateAccount {
         id: 0,
-        start_balance: 500.99,
-    })?;
-    xxx.transact(Trans::CreateAccount {
+        start_balance: 500.,
+    });
+    my_stack.push_back(Trans::CreateAccount {
         id: 1,
-        start_balance: 50.9,
-    })?;
-    xxx.transact(Trans::Transfer {
-        from_id: 0,
-        to_id: 1,
-        amount: 100.,
-    })?;
-    xxx.transact(Trans::Transfer {
+        start_balance: 50.,
+    });
+    my_stack.push_back(Trans::Transfer {
         from_id: 0,
         to_id: 1,
         amount: 10.,
-    })?;
-    // xxx.transact(Trans::Transfer { from_id: 1, to_id: 0, amount: 1000. })?;
+    });
+    let _ = xxx.balance(0);
+    my_stack.push_back(Trans::Transfer {
+        from_id: 0,
+        to_id: 1,
+        amount: 10.,
+    });
 
-    xxx.display_accounts();
-    xxx.display_transactions();
+    // let mut duration = start.elapsed();
+    // while duration <= Duration::from_secs(2) {
+    //     duration = start.elapsed();
+    // }
 
-    Ok(())
+    while let Some(v) = my_stack.pop_front() {
+        let _ = xxx.transact(v);
+    }
+
+    let zzz = xxx.cut_block();
+    println!("{:?}", zzz);
+    blockchain.push(Block {
+        id: blockchain.iter().last().unwrap().id + 1,
+        transactions: zzz,
+    });
+
+    my_stack.push_back(Trans::Transfer {
+        from_id: 0,
+        to_id: 1,
+        amount: 10.,
+    });
+    let _ = xxx.balance(0);
+    my_stack.push_back(Trans::Transfer {
+        from_id: 0,
+        to_id: 1,
+        amount: 10.,
+    });
+    while let Some(v) = my_stack.pop_front() {
+        let _ = xxx.transact(v);
+    }
+
+    let zzz = xxx.cut_block();
+    println!("{:?}", zzz);
+    blockchain.push(Block {
+        id: blockchain.iter().last().unwrap().id + 1,
+        transactions: zzz,
+    });
+
+    println!("{:?}", blockchain);
+
+    // }
 }
