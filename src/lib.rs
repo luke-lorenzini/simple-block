@@ -1,16 +1,16 @@
 use std::collections::HashMap;
 
-pub type Xxx = (u32, TransactionTypes);
+pub type Transaction = (u32, TransactionTypes);
 
 #[derive(Debug, Default)]
 pub struct Block {
     pub id: u32,
-    pub transactions: Vec<Xxx>,
+    pub transactions: Vec<Transaction>,
     pub block_hash: Vec<u8>,
 }
 
 impl Block {
-    pub fn new(id: u32, transactions: Vec<Xxx>, block_hash: Vec<u8>) -> Self {
+    pub fn new(id: u32, transactions: Vec<Transaction>, block_hash: Vec<u8>) -> Self {
         Block {
             id,
             transactions,
@@ -40,7 +40,7 @@ struct AccountDetails {
 #[derive(Default)]
 pub struct Transactor {
     accounts: HashMap<u32, AccountDetails>,
-    transactions: Vec<Xxx>,
+    transactions: Vec<Transaction>,
     next_transaction_number: u32,
 }
 
@@ -56,7 +56,7 @@ impl Transactor {
         }
     }
 
-    pub fn cut_block(&mut self) -> Vec<Xxx> {
+    pub fn cut_block(&mut self) -> Vec<Transaction> {
         self.transactions.drain(..).collect()
     }
 
@@ -107,7 +107,7 @@ impl Transactor {
                         self.transactions
                             .push((self.next_transaction_number, transaction_type));
                     } else {
-                        return Err("NSF".into());
+                        return Err("Insufficient funds for transfer".into());
                     }
                 } else {
                     return Err("One of the accounts does not exist".into());
